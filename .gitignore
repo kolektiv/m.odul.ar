@@ -1,0 +1,6 @@
+# Build output
+/_site/
+
+# Node
+/node_modules/
+/.npm/
