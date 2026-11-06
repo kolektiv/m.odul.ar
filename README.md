@@ -30,6 +30,8 @@ Put files in `media/` and reference them from the root. An image on a line of it
 
 The same syntax with an `.mp4`, `.webm` or `.mov` file becomes a video player. GitHub rejects files over 100 MB, so keep these short or host them elsewhere.
 
+Browsers and Cloudflare keep copies of media files for hours. To change an image or video once it is published, give the new version a new name, or readers may keep seeing the old one.
+
 ```markdown
 ![A demo](/media/demo.mp4 "Optional caption")
 ```
@@ -54,15 +56,16 @@ The page is also marked up with [microformats](https://microformats.org/wiki/h-e
 
 `templates/page.html` is the whole page, and `templates/post.html` is one post within it. `templates/feed.xml` and `templates/entry.xml` do the same for the feed, with the same placeholders where they apply. Placeholders look like `{{ name }}`. A placeholder with no value stops the build with an error.
 
-| Template    | Placeholder      | Filled with                                          |
-| ----------- | ---------------- | ---------------------------------------------------- |
-| `page.html` | `{{ posts }}`    | Every post, newest first                             |
-| `post.html` | `{{ slug }}`     | The slug from the filename, such as `hello`          |
-|             | `{{ title }}`    | The `# Title` line                                   |
-|             | `{{ date }}`     | The date for reading, such as 6 November 2026        |
-|             | `{{ datetime }}` | The date for machines, such as 2026-11-06            |
-|             | `{{ tags }}`     | The tags as a list of links, or nothing              |
-|             | `{{ content }}`  | The post body                                        |
+| Template    | Placeholder        | Filled with                                         |
+| ----------- | ------------------ | --------------------------------------------------- |
+| `page.html` | `{{ posts }}`      | Every post, newest first                            |
+|             | `{{ stylesheet }}` | The stylesheet URL, such as `/style.3f9a1c2b7e.css` |
+| `post.html` | `{{ slug }}`       | The slug from the filename, such as `hello`         |
+|             | `{{ title }}`      | The `# Title` line                                  |
+|             | `{{ date }}`       | The date for reading, such as 6 November 2026       |
+|             | `{{ datetime }}`   | The date for machines, such as 2026-11-06           |
+|             | `{{ tags }}`       | The tags as a list of links, or nothing             |
+|             | `{{ content }}`    | The post body                                       |
 
 ## Preview locally
 

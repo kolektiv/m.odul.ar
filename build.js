@@ -4,14 +4,20 @@
 // Posts are named YYYY-MM-DD-slug.md and start with a "# Title" line, which
 // can be followed by a line of #tags.
 
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Marked } from "marked";
 
 const root = import.meta.dirname;
 const out = join(root, "_site");
-const assets = ["style.css", "media"];
+const assets = ["media"];
 const origin = "https://m.odul.ar";
+
+// The stylesheet's name includes a hash of its contents, so every change gets
+// a new URL that no browser or Cloudflare cache holds an old copy of.
+const css = readFileSync(join(root, "style.css"));
+const stylesheet = `/style.${createHash("sha256").update(css).digest("hex").slice(0, 10)}.css`;
 
 const videos = /\.(mp4|webm|mov)$/i;
 
@@ -99,6 +105,7 @@ const tagList = (tags) =>
     : "";
 
 const page = render("page.html", {
+  stylesheet,
   posts: posts
     .map((post) =>
       render("post.html", {
@@ -140,6 +147,7 @@ for (const asset of assets) {
   if (existsSync(join(root, asset))) cpSync(join(root, asset), join(out, asset), { recursive: true });
 }
 
+writeFileSync(join(out, stylesheet), css);
 writeFileSync(join(out, "index.html"), `${page}\n`);
 writeFileSync(join(out, "feed.xml"), `${feed}\n`);
 
