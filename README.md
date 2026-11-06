@@ -11,14 +11,18 @@ Add a file to `posts/` named `YYYY-MM-DD-slug.md`. The date and slug come from t
 ```markdown
 # Title
 
+#tag #another-tag
+
 Body text. Use `##` for subheadings.
 ```
 
 Posts appear newest first on a single page. Each links to itself as `https://m.odul.ar/#slug`.
 
+The line of tags is optional. It goes straight after the title and holds nothing but tags, made of letters, digits and hyphens. Each tag links to `https://m.odul.ar/?tag=name`, where a small script in `templates/page.html` hides the posts without that tag. Without JavaScript, every post stays visible.
+
 ## Images and video
 
-Put files in `media/` and reference them from the root. An image on a line of its own becomes a figure, and its title becomes the caption:
+Put files in `media/` and reference them from the root. An image on a line of its own becomes a figure, and its title becomes the caption. It shrinks to fit the column, and clicking it opens the file at full size in a new tab:
 
 ```markdown
 ![A patch](/media/patch.jpg "Optional caption")
@@ -38,9 +42,17 @@ Raw HTML passes straight through, for anything Markdown can't express, such as a
 </figure>
 ```
 
+The alt text in `![...]` is what screen readers say in place of an image, so describe what the image shows. For a decorative image, leave it empty, and it won't link to its file either. For a video with speech, add captions with a `<track>` element in raw HTML.
+
+## Feed and metadata
+
+The build also writes an Atom feed to `/feed.xml`, with the full text of every post. The page links to it, so feed readers find it from the site address alone. Feed readers show posts away from the site, so links and images starting at `/` get the full site address in the feed. Each post's feed ID is based on its date and slug, so changing either makes readers see it as a new post.
+
+The page is also marked up with [microformats](https://microformats.org/wiki/h-entry), class names such as `h-entry` and `p-name` that let other sites and tools read posts as structured data. The Bluesky link has `rel="me"`, which marks it as the same owner as this site.
+
 ## Templates
 
-`templates/page.html` is the whole page, and `templates/post.html` is one post within it. Placeholders look like `{{ name }}` and are filled with HTML. A placeholder with no value stops the build with an error.
+`templates/page.html` is the whole page, and `templates/post.html` is one post within it. `templates/feed.xml` and `templates/entry.xml` do the same for the feed, with the same placeholders where they apply. Placeholders look like `{{ name }}`. A placeholder with no value stops the build with an error.
 
 | Template    | Placeholder      | Filled with                                          |
 | ----------- | ---------------- | ---------------------------------------------------- |
@@ -49,6 +61,7 @@ Raw HTML passes straight through, for anything Markdown can't express, such as a
 |             | `{{ title }}`    | The `# Title` line                                   |
 |             | `{{ date }}`     | The date for reading, such as 6 November 2026        |
 |             | `{{ datetime }}` | The date for machines, such as 2026-11-06            |
+|             | `{{ tags }}`     | The tags as a list of links, or nothing              |
 |             | `{{ content }}`  | The post body                                        |
 
 ## Preview locally

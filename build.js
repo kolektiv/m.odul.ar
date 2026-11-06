@@ -1,6 +1,8 @@
-// Builds _site/ from the Markdown files in posts/ and the templates in templates/.
+// Builds _site/ from the Markdown files in posts/ and the templates in templates/:
+// the page itself, and an Atom feed of the same posts.
 //
-// Posts are named YYYY-MM-DD-slug.md and start with a "# Title" line.
+// Posts are named YYYY-MM-DD-slug.md and start with a "# Title" line, which
+// can be followed by a line of #tags.
 
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,6 +11,7 @@ import { Marked } from "marked";
 const root = import.meta.dirname;
 const out = join(root, "_site");
 const assets = ["style.css", "media"];
+const origin = "https://m.odul.ar";
 
 const videos = /\.(mp4|webm|mov)$/i;
 
@@ -18,8 +21,10 @@ const escape = (s) =>
 const formatDate = (date) =>
   new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" }).format(new Date(date));
 
-// Fills a template's {{ name }} placeholders with HTML. A placeholder with no
-// value is an error, so typos fail the build instead of publishing.
+const timestamp = (date) => `${date}T00:00:00Z`;
+
+// Fills a template's {{ name }} placeholders. A placeholder with no value is
+// an error, so typos fail the build instead of publishing.
 const render = (template, values) =>
   readFileSync(join(root, "templates", template), "utf8").trimEnd().replace(/\{\{\s*(\w+)\s*\}\}/g, (_, name) => {
     if (!Object.hasOwn(values, name)) throw new Error(`templates/${template}: no value for {{ ${name} }}`);
@@ -35,11 +40,19 @@ const marked = new Marked({
     },
 
     // An image or video on its own line becomes a figure, captioned by its title.
+    // An image opens full size in a new tab, and its link says so to screen
+    // readers. A decorative image, with empty alt text, isn't linked, so screen
+    // readers can skip it.
     paragraph({ tokens }) {
       if (tokens.length !== 1 || tokens[0].type !== "image") return false;
-      const { title } = tokens[0];
-      const caption = title ? `\n  <figcaption>${escape(title)}</figcaption>` : "";
-      return `<figure>\n  ${this.image(tokens[0])}${caption}\n</figure>\n`;
+      const [media] = tokens;
+      const alt = escape(this.parser.parseInline(media.tokens, this.parser.textRenderer));
+      const caption = media.title ? `\n  <figcaption>${escape(media.title)}</figcaption>` : "";
+      const body =
+        videos.test(media.href) || !alt
+          ? this.image(media)
+          : `<a href="${escape(media.href)}" target="_blank" aria-label="${alt} (full size, opens in new tab)">${this.image(media)}</a>`;
+      return `<figure>\n  ${body}${caption}\n</figure>\n`;
     },
 
     // ![alt](/media/x.jpg) is an image, ![alt](/media/x.mp4) is a video.
@@ -66,18 +79,59 @@ const posts = readdirSync(join(root, "posts"))
     if (!content) throw new Error(`posts/${file}: start it with a "# Title" line`);
 
     const [, date, slug] = name;
-    const [, title, body] = content;
+    const [, title, rest] = content;
 
-    return render("post.html", {
-      slug,
-      title: marked.parseInline(title),
-      date: formatDate(date),
-      datetime: date,
-      content: marked.parse(body).trimEnd(),
-    });
+    // The first line after the title is tags if it holds nothing else, like "#ui #dsp".
+    const tagLine = rest.match(/^\s*((?:#[a-z0-9-]+[ \t]*)+)(?:\r?\n|$)/i);
+    const tags = tagLine ? [...new Set(tagLine[1].toLowerCase().match(/[a-z0-9-]+/g))] : [];
+    const body = tagLine ? rest.slice(tagLine[0].length) : rest;
+
+    return { slug, date, title: marked.parseInline(title), tags, content: marked.parse(body).trimEnd() };
   });
 
-const page = render("page.html", { posts: posts.join("\n\n") });
+// Each tag links to the page filtered by it. The list is named for screen
+// readers, and role="list" keeps it a list in Safari once its bullets are gone.
+const tagList = (tags) =>
+  tags.length
+    ? `<ul class="tags" role="list" aria-label="Tags">${tags
+        .map((tag) => `<li><a class="p-category" href="/?tag=${tag}">${tag}</a></li>`)
+        .join("")}</ul>`
+    : "";
+
+const page = render("page.html", {
+  posts: posts
+    .map((post) =>
+      render("post.html", {
+        slug: post.slug,
+        title: post.title,
+        date: formatDate(post.date),
+        datetime: post.date,
+        tags: tagList(post.tags),
+        content: post.content,
+      }),
+    )
+    .join("\n\n"),
+});
+
+// Feed readers show posts away from the site, so links and images that start
+// at the site root need its full address.
+const absolute = (html) => html.replace(/\b(href|src)="\/(?!\/)/g, `$1="${origin}/`);
+
+const feed = render("feed.xml", {
+  updated: timestamp(posts[0]?.date ?? new Date().toISOString().slice(0, 10)),
+  entries: posts
+    .map((post) =>
+      render("entry.xml", {
+        slug: post.slug,
+        datetime: post.date,
+        timestamp: timestamp(post.date),
+        title: escape(post.title),
+        categories: post.tags.map((tag) => `<category term="${tag}"/>`).join("\n    "),
+        content: escape(absolute(post.content)),
+      }),
+    )
+    .join("\n"),
+});
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out);
@@ -87,5 +141,6 @@ for (const asset of assets) {
 }
 
 writeFileSync(join(out, "index.html"), `${page}\n`);
+writeFileSync(join(out, "feed.xml"), `${feed}\n`);
 
 console.log(`Built ${posts.length} post${posts.length === 1 ? "" : "s"} into _site/`);

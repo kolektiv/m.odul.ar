@@ -1,7 +1,10 @@
-<article id="{{ slug }}">
+<article class="h-entry" id="{{ slug }}">
   <header>
-    <h2><a href="#{{ slug }}">{{ title }}</a></h2>
-    <time datetime="{{ datetime }}">{{ date }}</time>
+    <h2 class="p-name"><a class="u-url" href="/#{{ slug }}">{{ title }}</a></h2>
+    <time class="dt-published" datetime="{{ datetime }}">{{ date }}</time>
+    {{ tags }}
   </header>
-  {{ content }}
+  <div class="e-content">
+    {{ content }}
+  </div>
 </article>

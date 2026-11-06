@@ -1,23 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <title>m.odul.ar</title>
-    <meta name="description" content="Notes on building modular synth software.">
+    <meta name="description" content="Building a Software Modular Synthesis System">
     <link rel="canonical" href="https://m.odul.ar/">
+    <link rel="alternate" type="application/atom+xml" title="m.odul.ar" href="/feed.xml">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/style.css">
   </head>
-  <body>
+  <body class="h-feed">
     <header>
-      <h1><a href="/">m.odul.ar</a></h1>
-      <p>Notes on building modular synth software.</p>
+      <h1 class="p-name"><a class="u-url" href="/">m.odul.ar</a></h1>
+      <p class="p-summary">Building a Software Modular Synthesis System</p>
     </header>
-
     <main>
+      <p class="filter" hidden>Posts tagged <span data-tag></span> <span aria-hidden="true">·</span> <a href="/">show all</a></p>
       {{ posts }}
     </main>
+    <script>
+      // With ?tag=name in the URL, show only the posts linking to that tag.
+      const tag = new URLSearchParams(location.search).get("tag")?.toLowerCase();
+      if (tag) {
+        const filter = document.querySelector(".filter");
+        filter.querySelector("[data-tag]").textContent = `#${tag}`;
+        filter.hidden = false;
+        for (const post of document.querySelectorAll("main > article")) {
+          const links = [...post.querySelectorAll(".tags a")];
+          post.hidden = !links.some((link) => new URL(link.href).searchParams.get("tag") === tag);
+        }
+      }
+    </script>
+    <footer>
+      <p>
+        Elsewhere:
+        <a href="https://bsky.app/profile/m.odul.ar" rel="me">m.odul.ar on bsky</a>
+      </p>
+      <p>
+        Subscribe:
+        <a href="/feed.xml">Atom feed</a>
+      </p>
+    </footer>
   </body>
 </html>

@@ -1,0 +1,9 @@
+  <entry>
+    <id>tag:m.odul.ar,{{ datetime }}:{{ slug }}</id>
+    <title type="html">{{ title }}</title>
+    <link rel="alternate" type="text/html" href="https://m.odul.ar/#{{ slug }}"/>
+    <published>{{ timestamp }}</published>
+    <updated>{{ timestamp }}</updated>
+    {{ categories }}
+    <content type="html">{{ content }}</content>
+  </entry>
