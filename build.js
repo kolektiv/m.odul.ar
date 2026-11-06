@@ -1,4 +1,4 @@
-// Builds _site/ from template.html and the Markdown files in posts/.
+// Builds _site/ from the Markdown files in posts/ and the templates in templates/.
 //
 // Posts are named YYYY-MM-DD-slug.md and start with a "# Title" line.
 
@@ -17,6 +17,14 @@ const escape = (s) =>
 
 const formatDate = (date) =>
   new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" }).format(new Date(date));
+
+// Fills a template's {{ name }} placeholders with HTML. A placeholder with no
+// value is an error, so typos fail the build instead of publishing.
+const render = (template, values) =>
+  readFileSync(join(root, "templates", template), "utf8").trimEnd().replace(/\{\{\s*(\w+)\s*\}\}/g, (_, name) => {
+    if (!Object.hasOwn(values, name)) throw new Error(`templates/${template}: no value for {{ ${name} }}`);
+    return values[name];
+  });
 
 const marked = new Marked({
   renderer: {
@@ -60,16 +68,16 @@ const posts = readdirSync(join(root, "posts"))
     const [, date, slug] = name;
     const [, title, body] = content;
 
-    return `<article id="${slug}">
-  <header>
-    <h2><a href="#${slug}">${marked.parseInline(title)}</a></h2>
-    <time datetime="${date}">${formatDate(date)}</time>
-  </header>
-${marked.parse(body)}</article>`;
+    return render("post.html", {
+      slug,
+      title: marked.parseInline(title),
+      date: formatDate(date),
+      datetime: date,
+      content: marked.parse(body).trimEnd(),
+    });
   });
 
-const template = readFileSync(join(root, "template.html"), "utf8");
-const page = template.replace("<!-- posts -->", () => posts.join("\n\n"));
+const page = render("page.html", { posts: posts.join("\n\n") });
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out);
@@ -78,6 +86,6 @@ for (const asset of assets) {
   if (existsSync(join(root, asset))) cpSync(join(root, asset), join(out, asset), { recursive: true });
 }
 
-writeFileSync(join(out, "index.html"), page);
+writeFileSync(join(out, "index.html"), `${page}\n`);
 
 console.log(`Built ${posts.length} post${posts.length === 1 ? "" : "s"} into _site/`);

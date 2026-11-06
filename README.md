@@ -2,7 +2,7 @@
 
 Notes on building modular synth software, published at <https://m.odul.ar> with GitHub Pages.
 
-Posts are Markdown files. On every push to `main`, a GitHub Actions workflow runs `build.js`, which renders them into `template.html` and publishes the result. The only dependency is [marked](https://marked.js.org).
+Posts are Markdown files. On every push to `main`, a GitHub Actions workflow runs `build.js`, which renders them through the templates in `templates/` and publishes the result. The only dependency is [marked](https://marked.js.org).
 
 ## Writing a post
 
@@ -38,18 +38,32 @@ Raw HTML passes straight through, for anything Markdown can't express, such as a
 </figure>
 ```
 
+## Templates
+
+`templates/page.html` is the whole page, and `templates/post.html` is one post within it. Placeholders look like `{{ name }}` and are filled with HTML. A placeholder with no value stops the build with an error.
+
+| Template    | Placeholder      | Filled with                                          |
+| ----------- | ---------------- | ---------------------------------------------------- |
+| `page.html` | `{{ posts }}`    | Every post, newest first                             |
+| `post.html` | `{{ slug }}`     | The slug from the filename, such as `hello`          |
+|             | `{{ title }}`    | The `# Title` line                                   |
+|             | `{{ date }}`     | The date for reading, such as 6 November 2026        |
+|             | `{{ datetime }}` | The date for machines, such as 2026-11-06            |
+|             | `{{ content }}`  | The post body                                        |
+
 ## Preview locally
 
 `.nix/flake.nix` provides Node 24, and `.envrc` loads it with direnv when you enter the directory. Without direnv, run `nix develop ./.nix` from the repository root.
 
 Packages stay in the project. Dependencies go in `node_modules/`, and anything installed with `npm install -g` goes in `.npm/`.
 
-Build into `_site/`, then serve it:
+Install, then start the dev server:
 
 ```sh
 npm install
-npm run build
-python3 -m http.server -d _site
+npm run dev
 ```
 
-Then open <http://localhost:8000>.
+Open <http://localhost:8000>. Saving a post, a file in `media/`, a template, the CSS or `build.js` rebuilds the site and reloads the page. If a build fails, the error shows in the terminal and the last good build stays up. Set `PORT` to use a different port.
+
+`npm run build` builds into `_site/` once, as the publish workflow does.
